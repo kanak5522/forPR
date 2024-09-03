@@ -1,0 +1,50 @@
+name: Terraform Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.3.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=tfplan
+
+      - name: Create and push new branch
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          git checkout -b feature/terraform-deploy
+          git add .
+          git commit -m "Add Terraform configuration"
+          git push origin feature/terraform-deploy
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Deploy Terraform changes"
+          body: "This PR contains Terraform changes."
+          base: main
+          branch: feature/terraform-deploy
+
+      - name: Merge Pull Request if Plan is Successful
+        uses: peter-evans/merge-pull-request@v3
+        if: ${{ steps.plan.outcome == 'success' }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request: ${{ github.event.pull_request.number }}
+
