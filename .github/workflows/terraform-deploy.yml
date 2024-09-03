@@ -8,6 +8,7 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -15,7 +16,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.9.5
+          terraform_version: 1.9.5  # Ensure this version is correct and exists
 
       - name: Terraform Init
         run: terraform init
@@ -33,6 +34,7 @@ jobs:
           git push origin feature/terraform-deploy
 
       - name: Create Pull Request
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -40,11 +42,4 @@ jobs:
           body: "This PR contains Terraform changes."
           base: main
           branch: feature/terraform-deploy
-
-      - name: Merge Pull Request if Plan is Successful
-        uses: peter-evans/merge-pull-request@v3
-        if: ${{ steps.plan.outcome == 'success' }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull_request: ${{ github.event.pull_request.number }}
 
